@@ -1,13 +1,19 @@
 {
   "name": "bootcamp_apis",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API services for bootcamp exercises",
+  "main": "serve.js",
   "scripts": {
+    "start": "node serve.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "bootcamp",
+    "apis",
+    "node",
+    "express"
+  ],
+  "author": "Your Name",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.2",
