@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bootcamp APIS</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/alpinejs" defer></script>
+</head>
+<body>
+    
+    <div class="container">
+        <!-- Words Widget -->
+        <div x-data="wordWidget()" class="widget">
+            <h2>Words Widget API</h2>
+            <div x-show="showInputs">
+                <input type="text" x-model="sentence" @input="debounceFetchStats" placeholder="Enter a sentence">
+                <button @click="fetchStats">Get Stats</button>
+            </div>
+            
+            <div x-show="showResults">
+                <p>Sentence: <span x-text="sentence"></span></p>
+                <p>Longest Word Length: <span x-text="stats.longestWord"></span></p>
+                <p>Shortest Word: <span x-text="stats.shortestWord"></span></p>
+                <p>Sum of Lengths: <span x-text="stats.sum"></span></p>
+            </div>
+            <p x-show="error" class="error">Error: <span x-text="error"></span></p>
+        </div>
+
+        <!-- Phone Bill Widget -->
+        <div x-data="phoneBillWidget()" class="widget">
+            <h2>Total Phone Bill API</h2>
+            <div x-show="showInputs">
+                <input type="text" x-model="bill" placeholder="Enter bill (e.g., call,sms,call)">
+                <button @click="calculateTotal">Calculate Total</button>
+            </div>
+            <p>Total: <span x-text="total"></span></p>
+            
+            <h3>Update Prices</h3>
+            <div x-show="showInputs">
+                <label>Call Price: <input type="number" step="0.01" x-model="callPrice"></label>
+                <label>SMS Price: <input type="number" step="0.01" x-model="smsPrice"></label>
+                <button @click="updatePrices">Update Prices</button>
+            </div>
+
+            <h3>Prices</h3>
+            <p>Call Price: <span x-text="currentPrices.call"></span></p>
+            <p>SMS Price: <span x-text="currentPrices.sms"></span></p>
+            <p x-show="error" class="error">Error: <span x-text="error"></span></p>
+        </div>
+
+        <!-- Enough Airtime Widget -->
+        <div x-data="enoughAirtimeWidget()" class="widget">
+            <h2>Enough Airtime API</h2>
+            <div x-show="showInputs">
+                <input type="text" x-model="usage" placeholder="Enter usage (e.g., call,sms,call)">
+                <input type="number" x-model="available" step="0.01" placeholder="Available Airtime">
+                <button @click="checkAirtime">Check Airtime</button>
+            </div>
+            <p>Remaining Airtime: <span x-text="result"></span></p>
+            <p x-show="error" class="error">Error: <span x-text="error"></span></p>
+        </div>
+    </div>
+
+    <script>
+        function wordWidget() {
+            return {
+                sentence: '',
+                stats: { longestWord: null, shortestWord: null, sum: null },
+                error: '',
+                showResults: false,
+                showInputs: true,
+
+                debounceFetchStats: debounce(function() {
+                    this.showResults = false;
+                }, 500), // Adjust debounce delay as needed
+
+                fetchStats() {
+                    fetch(`http://localhost:4000/api/word_game?sentence=${encodeURIComponent(this.sentence)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! Status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            this.stats = data;
+                            this.showResults = true; // Show results after fetching data
+                            this.showInputs = false; // Hide inputs
+                            this.error = ''; // Clear any previous errors
+                            // Set timeout to hide results and clear inputs after 5 seconds
+                            setTimeout(() => {
+                                this.showResults = false;
+                                this.sentence = ''; // Clear the sentence input
+                                this.showInputs = true; // Show inputs again
+                            }, 5000);
+                        })
+                        .catch(error => {
+                            this.error = 'Failed to fetch statistics: ' + error.message;
+                            console.error('Fetch error:', error);
+                        });
+                }
+            }
+        }
+
+        function phoneBillWidget() {
+            return {
+                bill: '',
+                total: 0,
+                callPrice: 2.75,
+                smsPrice: 0.65,
+                currentPrices: { call: 2.75, sms: 0.65 },
+                error: '',
+                showInputs: true,
+
+                calculateTotal() {
+                    fetch('http://localhost:4000/api/phonebill/total', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bill: this.bill })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.total = data.total;
+                        this.error = ''; // Clear any previous errors
+                        this.showInputs = false; // Hide inputs
+                        // Set timeout to hide results and clear inputs after 5 seconds
+                        setTimeout(() => {
+                            this.total = 0;
+                            this.bill = ''; // Clear the bill input
+                            this.showInputs = true; // Show inputs again
+                        }, 5000);
+                    })
+                    .catch(error => {
+                        this.error = 'Failed to calculate total: ' + error.message;
+                        console.error('Fetch error:', error);
+                    });
+                },
+
+                updatePrices() {
+                    const updatePrice = (type, price) => {
+                        return fetch('http://localhost:4000/api/phonebill/price', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type, price })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! Status: ${response.status}`);
+                            }
+                            return response.json();
+                        });
+                    };
+
+                    Promise.all([
+                        updatePrice('call', this.callPrice),
+                        updatePrice('sms', this.smsPrice)
+                    ])
+                    .then(() => fetch('http://localhost:4000/api/phonebill/prices'))
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.currentPrices = data;
+                        this.error = ''; // Clear any previous errors
+                        this.showInputs = false; // Hide inputs
+                        // Set timeout to hide results and clear inputs after 5 seconds
+                        setTimeout(() => {
+                            this.currentPrices = { call: 2.75, sms: 0.65 }; // Reset prices
+                            this.callPrice = 2.75; // Clear call price input
+                            this.smsPrice = 0.65; // Clear SMS price input
+                            this.showInputs = true; // Show inputs again
+                        }, 5000);
+                    })
+                    .catch(error => {
+                        this.error = 'Failed to update prices: ' + error.message;
+                        console.error('Fetch error:', error);
+                    });
+                }
+            }
+        }
+
+        function enoughAirtimeWidget() {
+            return {
+                usage: '',
+                available: 0,
+                result: 0,
+                error: '',
+                showInputs: true,
+
+                checkAirtime() {
+                    fetch('http://localhost:4000/api/enough', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ usage: this.usage, available: this.available })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.result = data.result;
+                        this.error = ''; // Clear any previous errors
+                        this.showInputs = false; // Hide inputs
+                        // Set timeout to hide results and clear inputs after 5 seconds
+                        setTimeout(() => {
+                            this.result = 0;
+                            this.usage = ''; // Clear the usage input
+                            this.available = 0; // Clear the available airtime input
+                            this.showInputs = true; // Show inputs again
+                        }, 5000);
+                    })
+                    .catch(error => {
+                        this.error = 'Failed to check airtime: ' + error.message;
+                        console.error('Fetch error:', error);
+                    });
+                }
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+    </script>
+</body>
+</html>
