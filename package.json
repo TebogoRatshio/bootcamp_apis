@@ -2,9 +2,9 @@
   "name": "bootcamp_apis",
   "version": "1.0.0",
   "description": "API services for bootcamp exercises",
-  "main": "index.js",
+  "main": "serve.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node serve.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
