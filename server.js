@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors()); 
 app.use(bodyParser.json());
-app.use(express.static('public');
+app.use(express.static('public'));
 
 let callPrice = 2.75;
 let smsPrice = 0.65;
